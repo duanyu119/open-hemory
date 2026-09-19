@@ -1,0 +1,16 @@
+{
+  "paused": false,
+  "local": {
+    "vad_model_path": "/absolute/path/to/silero_vad.onnx",
+    "asr_model_path": "/absolute/path/to/whisper-model-directory",
+    "language": "zh",
+    "ffmpeg_path": "/absolute/path/to/ffmpeg",
+    "ffprobe_path": "/absolute/path/to/ffprobe"
+  },
+  "cloud": {
+    "enabled": false,
+    "price_verified": false,
+    "monthly_budget_usd": 0,
+    "trial_budget_usd": 0
+  }
+}

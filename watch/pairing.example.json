@@ -1,0 +1,9 @@
+{
+  "mac_url": "https://your-mac.local:8765",
+  "token": "REPLACE_WITH_A_NEW_LOCAL_RECEIVER_TOKEN",
+  "tls_mode": "pin",
+  "certificate_sha256": "REPLACE_WITH_SHA256_OF_YOUR_LOCAL_DER_CERTIFICATE",
+  "cf_access_client_id": "",
+  "cf_access_client_secret": "",
+  "allow_mobile_data": false
+}

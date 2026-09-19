@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hemory-local:processing-result:v1",
+  "title": "Successful STT run provenance v1",
+  "description": "Provenance for one successful STT response saved on the Mac. This is not a semantic segmentation or speaker identity result. Structural validation alone does not verify file hashes or timestamp ordering.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "chunk_id", "input_sha256", "provider", "model",
+    "started_at", "completed_at", "raw_response_sha256", "raw_response_path"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "run_id": { "$ref": "#/$defs/uuid" },
+    "chunk_id": { "$ref": "#/$defs/uuid" },
+    "input_sha256": {
+      "$ref": "#/$defs/sha256",
+      "description": "SHA-256 of the original uploaded audio file bytes actually submitted for STT."
+    },
+    "provider": { "enum": ["groq", "siliconflow", "openai"] },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Actual requested model name captured before the request; not a claim about an unreported server-side model revision. Do not infer this field for legacy responses."
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timezone-qualified UTC timestamp captured for the request attempt."
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timezone-qualified UTC timestamp of local raw response persistence, reconstructed from file mtime after a crash. This is not the provider's internal completion time."
+    },
+    "raw_response_sha256": {
+      "$ref": "#/$defs/sha256",
+      "description": "SHA-256 of the saved raw JSON file bytes, not the provider's original HTTP byte stream."
+    },
+    "raw_response_path": {
+      "type": "string",
+      "pattern": "^runs/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/response\\.json$",
+      "description": "Path relative to the private Mac data directory. The directory UUID must equal run_id. The immutable response snapshot is distinct from the legacy raw/<chunk_id>.json compatibility file."
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

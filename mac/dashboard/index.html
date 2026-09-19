@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>ExtBrain · 对话与记忆</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到内容</a>
+  <aside class="sidebar" aria-label="主导航">
+    <a class="brand" href="/" aria-label="ExtBrain 首页"><span class="brand-mark" aria-hidden="true">e</span><span>ExtBrain<small>对话与记忆</small></span></a>
+    <p class="nav-label">我的记录</p>
+    <nav class="nav-items" aria-label="记录视图">
+      <button class="nav-item active" data-view="conversations" aria-current="page"><span aria-hidden="true">▤</span>对话</button>
+      <button class="nav-item" data-view="timeline"><span aria-hidden="true">◷</span>时间线</button>
+      <button class="nav-item" data-view="recordings"><span aria-hidden="true">≋</span>原始录音</button>
+      <button class="nav-item" data-view="processing"><span aria-hidden="true">◌</span>处理状态</button>
+    </nav>
+    <div class="sidebar-foot"><span class="local-dot" aria-hidden="true"></span>本机资料库<small>原始录音完整保留</small></div>
+  </aside>
+  <main id="main" tabindex="-1">
+    <header class="page-head">
+      <div><p class="eyebrow">YOUR EVERYDAY CONVERSATIONS</p><h1 id="page-title">对话</h1><p class="page-description" id="page-description">从完整谈话出发，回看值得留下的内容。</p></div>
+      <div class="sync-area"><span id="connection" role="status">正在连接…</span><span id="updated-at">尚未获取数据</span><button id="refresh" class="text-button">刷新</button></div>
+    </header>
+    <div id="load-error" class="notice warning" role="alert" hidden></div>
+    <section class="stats" aria-label="资料库概览">
+      <div><span>对话</span><strong id="stat-conversations">—</strong><small>资料库总计</small></div>
+      <div><span>原音时长</span><strong id="stat-audio">—</strong><small id="stat-chunks">— 段原音</small></div>
+      <div><span>转写覆盖</span><strong id="stat-speech">—</strong><small>模型句段区间并集，非人声量</small></div>
+      <div><span>待核对</span><strong id="stat-attention">—</strong><small>处理状态中查看</small></div>
+    </section>
+    <section id="filters" class="filters" aria-label="筛选记录">
+      <div class="date-control"><label class="sr-only" for="date">日期</label><button id="previous-day" class="icon-button" aria-label="前一天">‹</button><input id="date" type="date"><button id="next-day" class="icon-button" aria-label="后一天">›</button><button id="today" class="text-button">今天</button></div>
+      <label class="search-control"><span aria-hidden="true">⌕</span><span class="sr-only">搜索标题和正文</span><input id="search" type="search" placeholder="搜索标题、正文…" maxlength="300" autocomplete="off"></label>
+      <label id="topic-filter" class="topic-control"><span class="sr-only">主题标签</span><select id="topic"><option value="">全部主题</option></select></label>
+    </section>
+    <div id="date-strip" class="date-strip" aria-label="有录音的日期"></div>
+    <section aria-labelledby="list-title">
+      <div class="section-head"><div><h2 id="list-title">当日对话</h2><span id="list-count" class="muted"></span></div><span id="list-hint" class="muted">按开始时间倒序</span></div>
+      <div id="content" aria-busy="true"><div class="empty-state"><span class="empty-symbol" aria-hidden="true">◌</span><h3>正在读取本机资料库</h3><p>已接收的录音与整理结果会显示在这里。</p></div></div>
+      <div class="load-more-wrap"><button id="load-more" class="secondary-button" hidden>加载更多</button></div>
+    </section>
+  </main>
+  <footer id="player" class="player" aria-label="原音播放器" hidden>
+    <div class="player-info"><strong data-player-title>尚未选择音频</strong><span data-player-note></span></div>
+    <div class="player-controls"><button class="icon-button" data-player="previous" aria-label="上一个播放区间">‹</button><button class="play-button" data-player="toggle" aria-label="播放">▶</button><button class="icon-button" data-player="next" aria-label="下一个播放区间">›</button><span data-player-time class="player-time">0:00 / 0:00</span><input data-player-seek type="range" min="0" max="1" step="0.05" value="0" aria-label="当前原音文件的播放位置"><label class="sr-only" for="player-mode">播放范围</label><select id="player-mode" data-player-mode><option value="compact">精简播放</option><option value="full">完整原音</option></select></div>
+    <p data-player-error class="player-error" role="status" hidden></p>
+  </footer>
+  <audio id="audio" preload="metadata" hidden></audio>
+  <dialog id="detail" aria-labelledby="detail-title">
+    <div class="dialog-shell">
+      <header class="dialog-head"><span id="detail-kicker">对话详情</span><button id="detail-close" class="icon-button" aria-label="关闭详情">×</button></header>
+      <div id="detail-scroll" class="dialog-scroll"><h2 id="detail-title" tabindex="-1">正在读取…</h2><div id="detail-body"></div></div>
+      <div id="detail-player" class="detail-player" aria-label="回听控制" hidden>
+        <div class="player-info"><strong data-player-title></strong><span data-player-note></span></div>
+        <div class="player-controls"><button class="icon-button" data-player="previous" aria-label="上一个播放区间">‹</button><button class="play-button" data-player="toggle" aria-label="播放">▶</button><button class="icon-button" data-player="next" aria-label="下一个播放区间">›</button><span data-player-time class="player-time">0:00 / 0:00</span><input data-player-seek type="range" min="0" max="1" step="0.05" value="0" aria-label="当前原音文件的播放位置"><label class="sr-only" for="detail-player-mode">播放范围</label><select id="detail-player-mode" data-player-mode><option value="compact">精简播放</option><option value="full">完整原音</option></select></div>
+        <p data-player-error class="player-error" role="status" hidden></p>
+      </div>
+    </div>
+  </dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

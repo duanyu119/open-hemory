@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>org.open-hemory.dashboard</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__ABSOLUTE_PYTHON_PATH__</string>
+    <string>__ABSOLUTE_PROJECT_ROOT__/mac/dashboard.py</string>
+    <string>--data-dir</string><string>__ABSOLUTE_DATA_ROOT__</string>
+  </array>
+  <key>WorkingDirectory</key><string>__ABSOLUTE_PROJECT_ROOT__</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>StandardOutPath</key><string>__ABSOLUTE_DATA_ROOT__/logs/dashboard.log</string>
+  <key>StandardErrorPath</key><string>__ABSOLUTE_DATA_ROOT__/logs/dashboard.error.log</string>
+</dict>
+</plist>
