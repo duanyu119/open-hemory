@@ -337,7 +337,21 @@ def handler_for(store, token):
             self.close_connection = True
 
         def do_GET(self):
-            self.reply(200 if self.path == "/health" else 404, {"ok": self.path == "/health"})
+            if self.path == "/health":
+                self.reply(200, {"ok": True}); return
+            if self.path == "/v1/status":
+                try:
+                    auth = self.headers.get("Authorization", "")
+                    if not hmac.compare_digest(auth.encode(), ("Bearer " + token).encode()):
+                        raise Rejected(401, "unauthorized")
+                    self.reply(200, read_status(store))
+                except Rejected as exc:
+                    self.reply(exc.status, {"error": exc.message})
+                except (OSError, sqlite3.Error):
+                    with contextlib.suppress(OSError):
+                        self.reply(503, {"error": "status unavailable"})
+                return
+            self.reply(404, {"ok": False})
 
         def do_POST(self):
             temp = None
@@ -446,6 +460,69 @@ def transcript_text(raw):
         if all(isinstance(s, dict) and isinstance(s.get("text"), str) for s in raw["segments"]):
             return "\n".join(s["text"].strip() for s in raw["segments"]).strip()
     raise ValueError("cloud response has no supported transcript field")
+
+
+def read_status(store, limit=500):
+    """Read-only chunk list with transcript state and text. Never triggers STT.
+
+    Prefers the local semantic (MLX Whisper) transcript and state when present,
+    falling back to the legacy cloud transcript. A malformed transcript must not
+    hide the whole list; it degrades that one row to text=None.
+    """
+    semantic = _read_semantic_analyses(store.root)
+    result = []
+    for row in store.rows():
+        try:
+            meta = json.loads(row["metadata"])
+            started = meta.get("started_at", "")
+        except (ValueError, KeyError, TypeError):
+            started = ""
+        text = None
+        status = row["status"]
+        local = semantic.get(row["chunk_id"])
+        if local is not None:
+            text = local["text"]
+            status = {"succeeded": "done", "failed": "failed", "needs_review": "needs_review",
+                      "running": "processing", "pending": "pending"}.get(local["state"], row["status"])
+        else:
+            try:
+                raw_path = store.raw_path(row["chunk_id"])
+                if raw_path.exists():
+                    text = transcript_text(json.loads(raw_path.read_text()))
+            except (ValueError, OSError, KeyError):
+                text = None
+        result.append({
+            "chunk_id": row["chunk_id"],
+            "started_at": started,
+            "duration": row["duration"],
+            "status": status,
+            "text": text,
+        })
+    result.sort(key=lambda c: (c["started_at"], c["chunk_id"]), reverse=True)
+    return {"ok": True, "chunks": result[:limit]}
+
+
+def _read_semantic_analyses(root):
+    """Map chunk_id -> {state, text} from the local semantic analyses table."""
+    path = root / "semantic" / "index.sqlite3"
+    if not path.exists():
+        return {}
+    try:
+        with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True) as db:
+            db.row_factory = sqlite3.Row
+            out = {}
+            for row in db.execute("SELECT chunk_id, state, result FROM analyses"):
+                text = None
+                if row["result"]:
+                    try:
+                        parsed = json.loads(row["result"])
+                        text = "\n".join(u.get("text", "") for u in parsed.get("utterances", []) if u.get("text")).strip() or None
+                    except (ValueError, KeyError, TypeError):
+                        text = None
+                out[row["chunk_id"]] = {"state": row["state"], "text": text}
+            return out
+    except sqlite3.Error:
+        return {}
 
 
 def chunk_markdown(store, row, relative_to):

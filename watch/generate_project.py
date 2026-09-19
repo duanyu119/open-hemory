@@ -47,9 +47,10 @@ def main():
     obj("container product", 'isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HemoryLocalDistribution.app; sourceTree = BUILT_PRODUCTS_DIR;')
     obj("source group", f'isa = PBXGroup; children = ({", ".join(ident(x) for x in sources + ["Info", "Assets", "Privacy"])},); path = HemoryLocal; sourceTree = "<group>";')
     obj("phone source", 'isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtBrainPhoneApp.swift; sourceTree = "<group>";')
+    obj("mac status client", 'isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacStatusClient.swift; sourceTree = "<group>";')
     obj("phone assets", 'isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>";')
-    obj("phone group", f'isa = PBXGroup; children = ({ident("phone source")}, {ident("phone assets")},); path = Phone; sourceTree = "<group>";')
-    for item in ["phone source", "phone assets", "Privacy", "Storage.swift", "PairingBridge.swift"]:
+    obj("phone group", f'isa = PBXGroup; children = ({ident("phone source")}, {ident("mac status client")}, {ident("phone assets")},); path = Phone; sourceTree = "<group>";')
+    for item in ["phone source", "mac status client", "phone assets", "Privacy", "Storage.swift", "PairingBridge.swift"]:
         obj(item + " phone build", f'isa = PBXBuildFile; fileRef = {ident(item)};')
     obj("products", f'isa = PBXGroup; children = ({ident("product")}, {ident("container product")},); name = Products; sourceTree = "<group>";')
     obj("main group", f'isa = PBXGroup; children = ({ident("source group")}, {ident("phone group")}, {ident("products")},); sourceTree = "<group>";')
@@ -65,7 +66,7 @@ def main():
     obj("embed watch", f'isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = "$(CONTENTS_FOLDER_PATH)/Watch"; dstSubfolderSpec = 16; files = ({ident("embed watch build")},); name = "Embed Watch Content"; runOnlyForDeploymentPostprocessing = 0;')
     obj("watch proxy", f'isa = PBXContainerItemProxy; containerPortal = {ident("project")}; proxyType = 1; remoteGlobalIDString = {ident("target")}; remoteInfo = HemoryLocal;')
     obj("watch dependency", f'isa = PBXTargetDependency; target = {ident("target")}; targetProxy = {ident("watch proxy")};')
-    obj("container sources", f'isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ({", ".join(ident(x + " phone build") for x in ["phone source", "Storage.swift", "PairingBridge.swift"])},); runOnlyForDeploymentPostprocessing = 0;')
+    obj("container sources", f'isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ({", ".join(ident(x + " phone build") for x in ["phone source", "mac status client", "Storage.swift", "PairingBridge.swift"])},); runOnlyForDeploymentPostprocessing = 0;')
     obj("container frameworks", 'isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;')
     obj("container resources", f'isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ({ident("phone assets phone build")}, {ident("Privacy phone build")},); runOnlyForDeploymentPostprocessing = 0;')
     obj("container target", f'''isa = PBXNativeTarget; buildConfigurationList = {ident("container configs")};

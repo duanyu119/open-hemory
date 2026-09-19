@@ -68,6 +68,35 @@ class PipelineTests(unittest.TestCase):
         connection.close()
         return result
 
+    def get(self, path, token=None):
+        connection = http.client.HTTPSConnection("127.0.0.1", self.server.server_port, context=ssl._create_unverified_context(), timeout=5)
+        headers = {} if token is None else {"Authorization": "Bearer " + token}
+        connection.request("GET", path, headers=headers)
+        response = connection.getresponse()
+        result = response.status, json.loads(response.read())
+        connection.close()
+        return result
+
+    def test_status_endpoint_requires_auth_and_returns_chunk_text(self):
+        self.assertEqual(self.get("/v1/status")[0], 401)
+        self.assertEqual(self.get("/v1/status", token="wrong-token-00000000000000000000000000")[0], 401)
+        meta = self.metadata(0)
+        self.assertEqual(self.post(meta)[0], 201)
+        status, body = self.get("/v1/status", token=self.token)
+        self.assertEqual(status, 200)
+        self.assertTrue(body["ok"])
+        chunk = next(c for c in body["chunks"] if c["chunk_id"] == meta["chunk_id"])
+        self.assertEqual(chunk["status"], "pending")
+        self.assertIsNone(chunk["text"])
+        (self.store.root / "raw").mkdir(exist_ok=True)
+        (self.store.root / "raw" / (meta["chunk_id"] + ".json")).write_text(json.dumps({"text": "转写文字"}))
+        with self.store.db() as db:
+            db.execute("UPDATE chunks SET status='done' WHERE chunk_id=?", (meta["chunk_id"],))
+        status, body = self.get("/v1/status", token=self.token)
+        chunk = next(c for c in body["chunks"] if c["chunk_id"] == meta["chunk_id"])
+        self.assertEqual(chunk["status"], "done")
+        self.assertEqual(chunk["text"], "转写文字")
+
     def test_authenticated_durable_upload_duplicate_and_conflicts(self):
         meta = self.metadata()
         self.assertEqual(self.post(meta, "invalid")[0], 401)

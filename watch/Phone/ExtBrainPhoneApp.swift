@@ -3,13 +3,31 @@ import SwiftUI
 @main
 struct ExtBrainPhoneApp: App {
     @StateObject private var pairing = PairingBridge()
+    @StateObject private var status = MacStatusClient()
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
-        WindowGroup { PhonePairingView(pairing: pairing) }
+        WindowGroup { PhoneRootView(pairing: pairing, status: status) }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { pairing.refresh() }
+                if phase == .active {
+                    pairing.refresh()
+                    status.refresh()
+                }
             }
+    }
+}
+
+private struct PhoneRootView: View {
+    @ObservedObject var pairing: PairingBridge
+    @ObservedObject var status: MacStatusClient
+
+    var body: some View {
+        TabView {
+            PhonePairingView(pairing: pairing)
+                .tabItem { Label("配对", systemImage: "applewatch") }
+            RecordingStatusView(status: status)
+                .tabItem { Label("录音", systemImage: "waveform") }
+        }
     }
 }
 
@@ -65,5 +83,100 @@ private struct PhonePairingView: View {
             .navigationTitle("ExtBrain")
             .tint(orange)
         }
+    }
+}
+
+private struct RecordingStatusView: View {
+    @ObservedObject var status: MacStatusClient
+    private let orange = Color(red: 243 / 255, green: 183 / 255, blue: 125 / 255)
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if status.chunks.isEmpty {
+                    ContentUnavailableView(
+                        "还没有读到录音",
+                        systemImage: "waveform",
+                        description: Text(status.message)
+                    )
+                } else {
+                    List(status.chunks) { chunk in
+                        ChunkRow(chunk: chunk)
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("录音")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        status.refresh()
+                    } label: {
+                        if status.loading {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                    .disabled(status.loading)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if let updated = status.lastUpdated {
+                    Text("更新于 \(updated, format: .dateTime.hour().minute())")
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .padding(4).background(.thinMaterial).clipShape(Capsule())
+                        .padding(.bottom, 6)
+                }
+            }
+            .refreshable { status.refresh() }
+        }
+        .tint(orange)
+    }
+}
+
+private struct ChunkRow: View {
+    let chunk: ChunkStatus
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(ChunkStatusLabel.time(chunk.started_at))
+                    .font(.headline)
+                Spacer()
+                Text(ChunkStatusLabel.duration(chunk.duration))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            HStack(spacing: 8) {
+                statusBadge
+                if chunk.text == nil {
+                    Text("尚未生成文字").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            if let text = chunk.text, !text.isEmpty {
+                Text(text)
+                    .font(.subheadline)
+                    .lineLimit(expanded ? nil : 3)
+                    .foregroundStyle(.primary)
+                Button(expanded ? "收起" : "展开全文") {
+                    withAnimation { expanded.toggle() }
+                }
+                .font(.caption)
+                .foregroundStyle(.tint)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var statusBadge: some View {
+        let title = ChunkStatusLabel.title(chunk.status)
+        let done = chunk.status == "done"
+        return Text(title)
+            .font(.caption.weight(.medium))
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background((done ? Color.green : Color.orange).opacity(0.15))
+            .foregroundStyle(done ? .green : .orange)
+            .clipShape(Capsule())
     }
 }

@@ -42,7 +42,7 @@ struct Pairing: Codable, Equatable {
             .filter { !$0.isWhitespace }
     }
 
-    func endpoint() throws -> URL {
+    func baseURL() throws -> URL {
         guard let parts = URLComponents(string: macURL.trimmingCharacters(in: .whitespacesAndNewlines)),
               parts.scheme == "https", let host = parts.host, !host.isEmpty,
               parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil,
@@ -53,7 +53,15 @@ struct Pairing: Codable, Equatable {
               cfAccessClientID.isEmpty == cfAccessClientSecret.isEmpty else {
             throw RecorderFailure(message: "填写 HTTPS 主机地址和至少 32 字符令牌。指纹模式需 64 位 SHA-256；Access ID/Secret 必须同时填写。")
         }
-        return base.appendingPathComponent("v1/chunks")
+        return base
+    }
+
+    func endpoint() throws -> URL {
+        try baseURL().appendingPathComponent("v1/chunks")
+    }
+
+    func statusEndpoint() throws -> URL {
+        try baseURL().appendingPathComponent("v1/status")
     }
 
     static func fromJSON(_ text: String) throws -> Pairing {
