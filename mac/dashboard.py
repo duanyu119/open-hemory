@@ -93,10 +93,24 @@ def overview(root):
             done=sum(states.values());states['pending']=max(0,len(sources)-done)+states.get('pending',0)
             attention=[dict(r) for r in db.execute("SELECT chunk_id,state,error FROM analyses WHERE state IN ('failed','needs_review') LIMIT 100")]
             attention += [dict(r) for r in db.execute("SELECT target_id,stage,state,error FROM jobs WHERE state IN ('needs_review','failed','budget_blocked') LIMIT 100")]
+            # Conversation-level quality issues are a separate dimension from task
+            # state; a summary job can succeed while its content is still needs_review.
+            for r in db.execute('''SELECT c.id, rv.body FROM conversations c
+                    JOIN revisions rv ON rv.conversation_id=c.id AND rv.revision=c.revision
+                    WHERE c.active=1 AND c.status='needs_review' LIMIT 100'''):
+                reasons=[]
+                try:
+                    doc=json.loads(r['body'])
+                    reasons=[str(x) for x in doc.get('summary_review_reasons',[]) if x]
+                except (ValueError,KeyError,TypeError):
+                    pass
+                attention.append({'conversation_id':r['id'],'state':'needs_review',
+                                  'error':('；'.join(reasons) if reasons else '对话内容待核对')})
             tags=[r[0] for r in db.execute('SELECT DISTINCT value FROM conversations,json_each(conversations.tags) WHERE active=1 ORDER BY value')]
     else:states['pending']=len(sources)
-    attention = [{**entry, 'status':entry.get('state'), 'message':entry.get('error'),
-                  'conversation_id':entry.get('target_id')} for entry in attention]
+    attention = [{**entry, 'status':entry.get('state'), 'message':entry.get('error')} for entry in attention]
+    for entry in attention:
+        entry['conversation_id'] = entry.get('conversation_id') or entry.get('target_id')
     return {'today':dt.datetime.now(TZ).date().isoformat(),'time_zone':str(TZ),'server_time':now(),'days':days,
             'counts':counts,'processing':{'states':states,'attention':attention},'tags':tags,
             'cloud':cloud_status(store,cloud_settings(root))}

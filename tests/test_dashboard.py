@@ -75,6 +75,19 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(self.request('/api/reprocess','POST',auth,json.dumps(payload))[0],200)
         with store.db() as db:self.assertEqual(db.execute('SELECT suppress_cloud FROM processing_controls').fetchone()[0],1)
 
+    def test_overview_lists_conversation_quality_issues(self):
+        from test_semantic_store import fixture
+        from semantic.conversation import build_conversations
+        store=SemanticStore(self.root)
+        sources,analyses=fixture();doc=build_conversations(sources,analyses)[0]
+        doc['status']='needs_review';doc['summary_review_reasons']=['模型合并遗漏主题，需人工核对']
+        store.publish(doc,doc['input_key'])
+        attention=d.overview(self.root)['processing']['attention']
+        conv=[e for e in attention if e.get('conversation_id')==doc['id']]
+        self.assertEqual(len(conv),1)
+        self.assertEqual(conv[0]['status'],'needs_review')
+        self.assertIn('模型合并遗漏主题',conv[0]['message'])
+
     def test_edits_require_session_csrf_and_origin(self):
         payload=json.dumps({'conversation_id':str(uuid.uuid4()),'base_revision':1,'operation':'rename','payload':{'title':'x'}})
         self.assertEqual(self.request('/api/corrections','POST',{'Content-Type':'application/json'},payload)[0],403)

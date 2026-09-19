@@ -308,7 +308,12 @@ def process(store,config,limit=0,no_cloud=False,analyzer=None,boundary_reconcile
                     lines.extend(['## '+topic['title'],'']+['- '+p['text'] for p in topic['key_points']]+[''])
                 export.write_text('\n'.join(lines))
         except CloudBlocked as exc:state='budget_blocked';error=str(exc)
-        except (CloudUncertain,ValueError,KeyError,TypeError) as exc:state='needs_review';error=type(exc).__name__+'; 摘要未通过验证，未替换原文'
+        except CloudUncertain as exc:state='needs_review';error=type(exc).__name__+'; 摘要请求未确认，未替换原文'
+        except Exception as exc:
+            # Any malformed model output (incl. non-dict topics, wrong field types)
+            # must fail only this task and never stop the worker loop. Never catch
+            # BaseException: KeyboardInterrupt/SystemExit still propagate.
+            state='needs_review';error=type(exc).__name__+'; 摘要未通过验证，未替换原文'
         with store.db(True) as db:db.execute('UPDATE jobs SET state=?,error=?,updated_at=? WHERE input_key=?',(state,error,now(),summary_key))
         print(json.dumps({'stage':'summary','conversation_id':doc['id'],'state':state}),flush=True)
     with store.db(True) as db:

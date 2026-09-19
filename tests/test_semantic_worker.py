@@ -170,6 +170,32 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(detail['title'],'人工标题')
         self.assertFalse((self.store.directory/'exports'/(detail['id']+'.md')).exists())
 
+    def test_bad_summary_output_does_not_stop_worker(self):
+        # Two independent conversations: the first summary raises the exact
+        # AttributeError that a non-object topic used to produce; the worker must
+        # record it as needs_review and still process the second conversation.
+        self.add_chunk(2)
+        calls={'n':0}
+        def bad_first(store,doc,config):
+            calls['n']+=1
+            if calls['n']==1:
+                raise AttributeError("'int' object has no attribute 'get'")
+            out=copy.deepcopy(doc);out.update(title='正常摘要',status='ready');return out
+        with patch.object(worker,'summarize',bad_first):
+            worker.process(self.store,self.config,analyzer=self.analyzer)
+        self.assertEqual(calls['n'],2)
+        items=self.store.list()['items']
+        self.assertEqual(len(items),2)
+        # The bad task's job is needs_review; the good task's job succeeded. The
+        # conversation itself stays transcribed (summary never published).
+        statuses={self.store.detail(i['id'])['status'] for i in items}
+        self.assertIn('transcribed',statuses)
+        self.assertIn('ready',statuses)
+        with self.store.db() as db:
+            job_states=[r['state'] for r in db.execute('SELECT state FROM jobs')]
+        self.assertIn('needs_review',job_states)
+        self.assertIn('succeeded',job_states)
+
     def test_multiple_undo_restores_history(self):
         worker.process(self.store,self.config,no_cloud=True,analyzer=self.analyzer)
         doc=self.store.detail(self.store.list()['items'][0]['id']);cid=doc['id']

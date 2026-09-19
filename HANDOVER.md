@@ -259,6 +259,7 @@ node --check mac/dashboard/app.js            # 前端语法
 | `test_conversation.py` | 缺口保护、跨分片、无文字非静音 |
 | `test_semantic_store.py` | 版本、人工修订、合并/拆分、撤销、分页 |
 | `test_summary_contract.py` | 摘要 schema、证据 ID、费用门控、流式完整性、单次格式修复 |
+| `test_summary_guardrails_v2.py` | 非对象/空主题、跨主题证据、未知证据、错类型、超长/空数组 |
 | `test_semantic_quality.py` | 重复/不可靠转写标注、保留原文 |
 | `test_worker_boundary.py` | worker 集成、边界缓存、人工保护、迟到片 |
 | `test_dashboard.py` | Range/HEAD、路径/符号链接、Host/Origin/CSRF、版本冲突 |
